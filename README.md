@@ -125,3 +125,4 @@ For educational use this publication may be freely distributed in its entirety.
 ---
 
 *The search for truth in data is never truly over.*
+| [synthetic_data_powerlaw.html](./synthetic_data_powerlaw.html) | English | Technical brief: the power law problem in synthetic data |
