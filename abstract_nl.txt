@@ -1,0 +1,11 @@
+Samenvatting — Fractals in Data
+Essentieel voor iedereen die beslissingen neemt op basis van data over menselijk gedrag.
+
+Data over mensen gedraagt zich anders dan klassieke statistiek voorspelt. Waar een klokkromme wordt verwacht, laat menselijke data een machtswet zien: een kleine top domineert het geheel, de staart is lang, en het gemiddelde bestaat nergens in de werkelijkheid. Dit patroon herhaalt zich op elk schaalniveau — fractals in data.
+
+Alpha is de meetlat die deze structuur zichtbaar maakt. Als KPI over tijd beantwoordt alpha de vraag die geen enkel ander getal kan beantwoorden: wordt onze verdeling gezonder of kwetsbaarder?
+
+Dit document legt uit waarom — en wat u er mee kunt doen.
+
+© 2026 Frank van der Eijden · Anankaia Nederland B.V.
+Voor onderwijsdoeleinden mag deze publicatie in zijn geheel vrij worden gedistribueerd.

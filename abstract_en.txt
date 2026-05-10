@@ -1,0 +1,11 @@
+Abstract — Fractals in Data
+Essential for anyone making decisions based on data about human behaviour — and beyond.
+
+Data about people behaves differently from what classical statistics predicts. Where a bell curve is expected, human data reveals a power law: a small top dominates the whole, the tail is long, and the average exists nowhere in reality. This pattern repeats at every level of scale — fractals in data.
+
+Alpha is the measuring stick that makes this structure visible. As a KPI over time, alpha answers the question no other number can: is our distribution becoming healthier or more vulnerable?
+
+This document explains why — and what to do with it.
+
+© 2026 Frank van der Eijden · Anankaia Nederland B.V.
+This publication may be freely distributed in its entirety for educational purposes.
