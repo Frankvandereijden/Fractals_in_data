@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Power Law Problem in Synthetic Data — Anankaia</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --bg3: #1a2234;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.15);
+  --text: #e8eaf0;
+  --text2: #9aa0b4;
+  --text3: #5a6280;
+  --gold: #f0b429;
+  --gold2: #ffd166;
+  --red: #ef4444;
+  --red2: rgba(239,68,68,0.12);
+  --green: #10b981;
+  --green2: rgba(16,185,129,0.12);
+  --blue: #3b82f6;
+  --blue2: rgba(59,130,246,0.12);
+  --teal: #14b8a6;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+/* NOISE TEXTURE */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 999; opacity: 0.5;
+}
+
+/* GRID LINES */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none; z-index: 0;
+}
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  justify-content: center;
+  padding: 4rem 2rem;
+  max-width: 900px; margin: 0 auto;
+  position: relative; z-index: 1;
+}
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 2rem;
+  opacity: 0; animation: fadeUp .6s ease forwards .1s;
+}
+.hero-tag::before {
+  content: ''; width: 24px; height: 1px; background: var(--gold);
+}
+
+.hero h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(36px, 6vw, 72px);
+  line-height: 1.05; font-weight: 400;
+  color: var(--text); margin-bottom: 1.5rem;
+  opacity: 0; animation: fadeUp .6s ease forwards .2s;
+}
+
+.hero h1 em {
+  font-style: italic; color: var(--gold);
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--text2); max-width: 600px;
+  margin-bottom: 3rem; font-weight: 300;
+  opacity: 0; animation: fadeUp .6s ease forwards .3s;
+}
+
+.hero-verdict {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: rgba(240,180,41,0.08);
+  border: 1px solid rgba(240,180,41,0.2);
+  border-radius: 4px; padding: .75rem 1.25rem;
+  font-size: 14px; color: var(--gold2);
+  opacity: 0; animation: fadeUp .6s ease forwards .4s;
+}
+
+.hero-scroll {
+  position: absolute; bottom: 2.5rem; left: 2rem;
+  font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--text3); display: flex; align-items: center; gap: 8px;
+}
+.hero-scroll::after { content: '↓'; font-size: 14px; animation: bounce 2s ease infinite; }
+
+/* CONTENT */
+.content {
+  max-width: 760px; margin: 0 auto;
+  padding: 0 2rem; position: relative; z-index: 1;
+}
+
+/* SECTION */
+.section { padding: 5rem 0; border-top: 1px solid var(--border); }
+.section:first-child { border-top: none; }
+
+.section-label {
+  font-size: 11px; letter-spacing: .25em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.section h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(24px, 3.5vw, 40px);
+  font-weight: 400; line-height: 1.2;
+  margin-bottom: 1.5rem; color: var(--text);
+}
+.section h2 em { font-style: italic; color: var(--gold); }
+
+.section p { font-size: 16px; color: var(--text2); margin-bottom: 1.25rem; line-height: 1.8; }
+.section p:last-child { margin-bottom: 0; }
+.section strong { color: var(--text); font-weight: 600; }
+
+/* STATEMENT BOX */
+.statement {
+  border-left: 2px solid var(--gold);
+  padding: 1.25rem 1.5rem; margin: 2.5rem 0;
+  background: rgba(240,180,41,0.05);
+  border-radius: 0 6px 6px 0;
+}
+.statement p {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(18px, 2.5vw, 24px) !important;
+  font-style: italic; color: var(--text) !important;
+  line-height: 1.5 !important; margin: 0 !important;
+}
+
+/* WARNING */
+.warning {
+  border: 1px solid rgba(239,68,68,0.25);
+  border-left: 3px solid var(--red);
+  background: var(--red2); border-radius: 0 6px 6px 0;
+  padding: 1.25rem 1.5rem; margin: 2rem 0;
+}
+.warning-label { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--red); margin-bottom: .5rem; font-weight: 600; }
+.warning p { font-size: 15px !important; color: var(--text2) !important; margin: 0 !important; }
+
+/* INSIGHT */
+.insight {
+  border: 1px solid rgba(16,185,129,0.2);
+  border-left: 3px solid var(--green);
+  background: var(--green2); border-radius: 0 6px 6px 0;
+  padding: 1.25rem 1.5rem; margin: 2rem 0;
+}
+.insight-label { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--green); margin-bottom: .5rem; font-weight: 600; }
+.insight p { font-size: 15px !important; color: var(--text2) !important; margin: .25rem 0 0 !important; }
+
+/* NUMBER COMPARISON */
+.comparison {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 1rem; margin: 2.5rem 0;
+}
+.comp-box {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 1.25rem; text-align: center;
+}
+.comp-label { font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--text3); margin-bottom: .5rem; }
+.comp-value { font-family: 'DM Serif Display', serif; font-size: 36px; line-height: 1; }
+.comp-value.real { color: var(--gold); }
+.comp-value.synthetic { color: var(--red); }
+.comp-sub { font-size: 12px; color: var(--text3); margin-top: .4rem; }
+.comp-vs { font-size: 13px; color: var(--text3); text-align: center; white-space: nowrap; }
+
+/* FACTOR BOX */
+.factor {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 1rem 1.25rem; margin: 2rem 0;
+  display: flex; align-items: center; gap: 1rem;
+}
+.factor-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 48px; color: var(--gold); line-height: 1;
+  flex-shrink: 0;
+}
+.factor-text { font-size: 14px; color: var(--text2); }
+.factor-text strong { color: var(--text); display: block; margin-bottom: 3px; }
+
+/* RULE LIST */
+.rule-list { list-style: none; margin: 1.5rem 0; }
+.rule-list li {
+  padding: .75rem 0 .75rem 1.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px; color: var(--text2);
+  position: relative; line-height: 1.65;
+}
+.rule-list li:last-child { border-bottom: none; }
+.rule-list li::before { content: '→'; position: absolute; left: 0; color: var(--gold); }
+
+/* DOMAIN TABLE */
+.domain-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 14px; margin: 1.5rem 0;
+}
+.domain-table th {
+  text-align: left; color: var(--text3); font-weight: 400;
+  padding: .5rem .75rem .75rem; border-bottom: 1px solid var(--border);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+}
+.domain-table td {
+  padding: .6rem .75rem; border-bottom: 1px solid var(--border);
+  color: var(--text2);
+}
+.domain-table td:first-child { color: var(--text); font-weight: 500; }
+.domain-table tr:last-child td { border-bottom: none; }
+.badge {
+  display: inline-block; font-size: 10px; padding: 1px 7px;
+  border-radius: 10px; font-weight: 600; letter-spacing: .05em;
+}
+.badge-high { background: rgba(239,68,68,0.15); color: #f87171; }
+.badge-med  { background: rgba(240,180,41,0.15); color: var(--gold); }
+
+/* CTA */
+.cta {
+  background: linear-gradient(135deg, rgba(240,180,41,0.08), rgba(240,180,41,0.03));
+  border: 1px solid rgba(240,180,41,0.2);
+  border-radius: 12px; padding: 2.5rem;
+  margin: 3rem 0; text-align: center;
+}
+.cta h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(20px, 3vw, 28px);
+  color: var(--text); margin-bottom: .75rem;
+}
+.cta p { font-size: 15px; color: var(--text2); margin-bottom: 1.5rem; max-width: 480px; margin-left: auto; margin-right: auto; }
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--gold); color: #0a0e17;
+  font-size: 14px; font-weight: 600; padding: .75rem 1.75rem;
+  border-radius: 6px; text-decoration: none;
+  transition: all .2s; letter-spacing: .02em;
+}
+.cta-btn:hover { background: var(--gold2); transform: translateY(-1px); }
+.cta-btn::after { content: '→'; }
+
+/* POSITIONING */
+.positioning {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 2rem;
+  margin: 3rem 0;
+}
+.positioning h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; color: var(--text); margin-bottom: 1rem;
+}
+.pos-item {
+  display: flex; gap: 1rem; padding: .9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.pos-item:last-child { border-bottom: none; padding-bottom: 0; }
+.pos-icon { font-size: 18px; width: 28px; flex-shrink: 0; margin-top: 1px; }
+.pos-content { flex: 1; }
+.pos-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.pos-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* FOOTER */
+footer {
+  max-width: 760px; margin: 0 auto;
+  padding: 3rem 2rem 4rem;
+  border-top: 1px solid var(--border);
+  position: relative; z-index: 1;
+  display: flex; justify-content: space-between;
+  flex-wrap: wrap; gap: 8px;
+}
+footer span { font-size: 12px; color: var(--text3); }
+footer .lic { font-style: italic; }
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(4px); }
+}
+
+/* SCROLL REVEAL */
+.reveal {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 600px) {
+  .hero { padding: 3rem 1.25rem; }
+  .content { padding: 0 1.25rem; }
+  .comparison { grid-template-columns: 1fr; }
+  .comp-vs { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <p class="hero-tag">Anankaia Nederland B.V. — Technical Brief</p>
+  <h1>The Power Law Problem<br>in <em>Synthetic Data</em></h1>
+  <p class="hero-sub">Most synthetic data generation tools preserve the mean and the variance. None of them preserve the alpha. That is why models trained on synthetic data fail at the edges — which is precisely where the most important decisions happen.</p>
+  <div class="hero-verdict">
+    ◆ &nbsp; Part of the <em>Fractals in Data</em> series &nbsp;·&nbsp; © 2026 Frank van der Eijden &nbsp;·&nbsp; Anankaia Nederland B.V.
+  </div>
+  <div class="hero-scroll">read on</div>
+</section>
+
+<div class="content">
+
+  <!-- THE FLAW -->
+  <section class="section reveal">
+    <div class="section-label">The core problem</div>
+    <h2>Your synthetic data does not behave like <em>reality</em></h2>
+    <p>Synthetic data generation is one of the fastest growing areas in AI. Privacy-preserving, scalable, and increasingly used to train production models. But there is a systematic flaw in how almost all synthetic data is currently generated — and it is almost never discussed.</p>
+    <p>When a synthetic data tool models a column like customer revenue, transaction size, or claim amount, it almost always fits a <strong>normal distribution</strong> to the observed data. Mean, variance, done. The synthetic data looks statistically similar at the centre. But at the edges — where the most important cases live — it is completely wrong.</p>
+
+    <div class="comparison">
+      <div class="comp-box">
+        <div class="comp-label">Real customer #1</div>
+        <div class="comp-value real">€47k</div>
+        <div class="comp-sub">actual top value</div>
+      </div>
+      <div class="comp-vs">vs.</div>
+      <div class="comp-box">
+        <div class="comp-label">Synthetic customer #1</div>
+        <div class="comp-value synthetic">€180</div>
+        <div class="comp-sub">normal distribution model</div>
+      </div>
+    </div>
+
+    <div class="factor">
+      <div class="factor-num">260×</div>
+      <div class="factor-text">
+        <strong>The underestimation factor at the top</strong>
+        The real top customer is 260 times larger than the synthetic top customer. A fraud detection model, a churn prediction model, or a revenue forecasting model trained on this synthetic data has never seen anything like the real top. It will systematically fail on the cases that matter most.
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY THIS HAPPENS -->
+  <section class="section reveal">
+    <div class="section-label">The root cause</div>
+    <h2>Human data follows a <em>power law</em>, not a bell curve</h2>
+    <p>Classical statistics is built on drawing balls from a jar. Independent. No memory. Mechanical. The central limit theorem tells us that when many independent random variables are added together, the result converges to a normal distribution.</p>
+    <p>But human data does not work this way. Customer behaviour, transaction sizes, fraud amounts, claim values — these are the result of <strong>multiplicative processes</strong> where success attracts success, loyalty reinforces itself, and the winner takes more. The correct model is a power law:</p>
+
+    <div style="text-align:center;font-family:'DM Serif Display',serif;font-size:28px;font-style:italic;color:var(--text);padding:1.5rem;margin:1.5rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+      y = C · x<span style="color:var(--gold)">⁻ᵅ</span>
+    </div>
+
+    <p>The exponent <strong>alpha (α)</strong> is the measuring stick that quantifies how concentrated the distribution is. It tells you how fast the top pulls away from the rest. And it is the one structural property that current synthetic data tools almost universally ignore.</p>
+
+    <div class="statement">
+      <p>"Most synthetic data preserves the mean and the variance. None of it preserves the alpha. That is the gap between statistical similarity and behavioural reality."</p>
+    </div>
+  </section>
+
+  <!-- THE CONSEQUENCES -->
+  <section class="section reveal">
+    <div class="section-label">Why it matters</div>
+    <h2>Where models fail when alpha is <em>wrong</em></h2>
+
+    <table class="domain-table">
+      <thead><tr>
+        <th>Domain</th>
+        <th>Column affected</th>
+        <th>Consequence of wrong alpha</th>
+        <th>Risk</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Fraud detection</td>
+          <td>Transaction amount</td>
+          <td>Model never trained on large-amount fraud — the exact cases that matter most</td>
+          <td><span class="badge badge-high">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Customer analytics</td>
+          <td>Revenue per customer</td>
+          <td>Top customer segment invisible in training data — churn and lifetime value models wrong</td>
+          <td><span class="badge badge-high">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Insurance</td>
+          <td>Claim size</td>
+          <td>Large claims underrepresented — pricing and reserves miscalibrated</td>
+          <td><span class="badge badge-high">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Risk management</td>
+          <td>Exposure concentration</td>
+          <td>Concentration risk invisible — stress testing misses realistic scenarios</td>
+          <td><span class="badge badge-med">High</span></td>
+        </tr>
+        <tr>
+          <td>Public sector payroll</td>
+          <td>Organisation size</td>
+          <td>Large employers absent from synthetic data — system-level analysis fails</td>
+          <td><span class="badge badge-high">Critical</span></td>
+        </tr>
+        <tr>
+          <td>Web analytics</td>
+          <td>Traffic per page</td>
+          <td>Top-performing content invisible — recommendation models miss the signal</td>
+          <td><span class="badge badge-med">High</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warning">
+      <div class="warning-label">⚠ governance implication</div>
+      <p>If a government organisation uses synthetic data generated without power law preservation to train a fraud detection or benefits allocation model, the model will systematically underperform on the highest-value cases. This is not a technical edge case — it is a predictable, systematic governance failure.</p>
+    </div>
+  </section>
+
+  <!-- THE FIX -->
+  <section class="section reveal">
+    <div class="section-label">The solution</div>
+    <h2>What correct synthetic data generation <em>requires</em></h2>
+    <p>Fixing this is not technically complex — but it requires knowing the problem exists. The core principle is simple: before generating any column, test whether it follows a power law. If it does, fit the power law parameters rather than a normal distribution.</p>
+
+    <ul class="rule-list">
+      <li><strong>Identify power law columns first.</strong> Plot on log-log scale. A straight line is the fingerprint of a power law. Test before assuming normal.</li>
+      <li><strong>Estimate alpha correctly.</strong> Visual inspection is a starting point. For production use, apply maximum likelihood estimation (Clauset, Shalizi, Newman 2009) with goodness-of-fit testing.</li>
+      <li><strong>Segment before modelling.</strong> A mixed distribution — two populations plotted as one — will show a distorted alpha. Segment by the relevant factor first, then fit each group separately.</li>
+      <li><strong>Validate at the tail, not just the centre.</strong> Standard statistical tests check mean and variance. For power law columns, validate that the top 1%, 5%, and 10% share in the synthetic data matches the real data.</li>
+      <li><strong>Track alpha as a quality metric.</strong> The alpha of the synthetic distribution should match the alpha of the real distribution within an acceptable tolerance. If it does not, the synthetic data is structurally wrong regardless of how similar the means are.</li>
+    </ul>
+
+    <div class="insight">
+      <div class="insight-label">✦ key principle</div>
+      <p>Columns that require power law modelling: revenue per customer, transaction amounts, claim sizes, messages per user, website visits per page, organisation size by headcount, error frequency by source.</p>
+      <p style="margin-top:.5rem !important">Columns where normal distribution is appropriate: age, body height, test scores, temperature measurements, biological measurements.</p>
+    </div>
+  </section>
+
+  <!-- ALPHA AS KPI -->
+  <section class="section reveal">
+    <div class="section-label">Beyond generation — ongoing governance</div>
+    <h2>Alpha as a <em>structural quality metric</em> for synthetic data</h2>
+    <p>Most synthetic data quality frameworks measure fidelity using statistical distance metrics — KL divergence, Wasserstein distance, column-wise distributions. These metrics test whether the centre of the distribution is preserved. They are largely blind to the tail.</p>
+    <p>Alpha provides a single, interpretable number that captures what these metrics miss: <strong>how concentrated is the distribution, and does the synthetic data match the concentration of reality?</strong></p>
+    <p>Tracked over time — across generations of synthetic data, across model versions, across data refresh cycles — alpha becomes a structural KPI that answers a question no other quality metric can answer:</p>
+
+    <div class="statement">
+      <p>"Is our synthetic data becoming a better or a worse reflection of the real-world distribution it is supposed to represent?"</p>
+    </div>
+  </section>
+
+  <!-- POSITIONING -->
+  <section class="section reveal">
+    <div class="section-label">Anankaia perspective</div>
+    <h2>Why this is an <em>AI governance</em> issue, not just a technical one</h2>
+    <p>The power law problem in synthetic data sits at the intersection of technical methodology and institutional risk — which is precisely where AI governance lives.</p>
+
+    <div class="positioning">
+      <h3>Three governance dimensions</h3>
+      <div class="pos-item">
+        <div class="pos-icon">⚖️</div>
+        <div class="pos-content">
+          <div class="pos-title">Accountability</div>
+          <div class="pos-desc">When a model trained on structurally incorrect synthetic data makes a wrong decision on a high-value case, who is accountable? The data team that generated the synthetic data? The model team that trained on it? The governance framework must address this chain of responsibility.</div>
+        </div>
+      </div>
+      <div class="pos-item">
+        <div class="pos-icon">🔍</div>
+        <div class="pos-content">
+          <div class="pos-title">Auditability</div>
+          <div class="pos-desc">Alpha preservation is a measurable, auditable property. Including alpha-matching as a required quality criterion in synthetic data governance frameworks makes the standard concrete and verifiable — not a vague aspiration.</div>
+        </div>
+      </div>
+      <div class="pos-item">
+        <div class="pos-icon">🏛️</div>
+        <div class="pos-content">
+          <div class="pos-title">Public sector risk</div>
+          <div class="pos-desc">Dutch government organisations processing payroll, benefits, and tax data operate on distributions with very high alpha values — a tiny fraction of organisations represents a majority of volume. Synthetic data generated for these environments without power law preservation is structurally unsuitable for training AI systems that operate on the real data.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section reveal">
+    <div class="cta">
+      <h3>The full story — with interactive exhibits</h3>
+      <p>This brief is a focused extract from a longer work that covers power laws in data from first principles: what they are, how to identify them, how alpha works as a measuring stick, and what they mean for everyday decisions.</p>
+      <a href="https://frankvandereijden.github.io/Fractals_in_data/adventure_guide_compleet_en.html" class="cta-btn">Read the Adventure Guide</a>
+      <p style="margin-top:1rem;font-size:13px;color:var(--text3)">
+        Rated 9.5/10 by Grok as senior econometrist — "Does for power laws what <em>The Black Swan</em> tried to do."<br>
+        Available in English and Dutch. Free to distribute for educational purposes.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <span>© 2026 Frank van der Eijden &nbsp;·&nbsp; Anankaia Nederland B.V.</span>
+  <span class="lic">CC BY 4.0 &nbsp;·&nbsp; This publication may be freely distributed in its entirety for educational purposes.</span>
+</footer>
+
+<script>
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+reveals.forEach(r => observer.observe(r));
+</script>
+</body>
+</html>
